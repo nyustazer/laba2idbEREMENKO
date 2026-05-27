@@ -1,0 +1,55 @@
+using System;
+using System.Diagnostics;
+using System.Threading;
+
+class Program
+{
+    static int count = 0;
+    static Semaphore semaphore = new Semaphore(1, 1);
+
+    static void Main()
+    {
+        Stopwatch sw = Stopwatch.StartNew();
+
+        Thread t1 = new Thread(() => Work(1, 1, 2500));
+        Thread t2 = new Thread(() => Work(2, 2501, 5000));
+        Thread t3 = new Thread(() => Work(3, 5001, 7500));
+        Thread t4 = new Thread(() => Work(4, 7501, 10000));
+
+        t1.Start(); t2.Start(); t3.Start(); t4.Start();
+
+        t1.Join(); t2.Join(); t3.Join(); t4.Join();
+
+        sw.Stop();
+
+        Console.WriteLine("Всего простых чисел: " + count);
+        Console.WriteLine("Время: " + sw.ElapsedMilliseconds + " мс");
+    }
+
+    static void Work(int threadNumber, int start, int end)
+    {
+        for (int i = start; i <= end; i++)
+        {
+            Console.WriteLine("Поток " + threadNumber + " проверяет " + i);
+
+            if (IsPrime(i))
+            {
+                semaphore.WaitOne();
+                count++;
+                semaphore.Release();
+
+                Console.WriteLine("Поток " + threadNumber + " нашел простое " + i);
+            }
+        }
+    }
+
+    static bool IsPrime(int n)
+    {
+        if (n < 2) return false;
+
+        for (int i = 2; i <= Math.Sqrt(n); i++)
+            if (n % i == 0) return false;
+
+        return true;
+    }
+}
