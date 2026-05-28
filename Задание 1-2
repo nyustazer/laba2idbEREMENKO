@@ -1,0 +1,111 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
+
+class Program
+{
+    static string fileName = "numbers.txt";
+
+    static Semaphore semaphore = new Semaphore(3, 3);
+    static object logLocker = new object();
+    static Mutex mutex = new Mutex();                 
+    static List<string> log = new List<string>();
+    static int totalSum = 0;
+
+    static void Main()
+    {
+        CreateFileIfNotExists();
+
+        string[] lines = File.ReadAllLines(fileName);
+
+        Stopwatch sw = Stopwatch.StartNew();
+
+        Thread[] threads = new Thread[lines.Length];
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            int index = i;
+
+            threads[i] = new Thread(() => Work(index + 1, lines[index]));
+            threads[i].Start();
+        }
+
+        for (int i = 0; i < threads.Length; i++)
+        {
+            threads[i].Join();
+        }
+
+        sw.Stop();
+
+        Console.WriteLine("Результаты наборов:");
+
+        foreach (string item in log)
+        {
+            Console.WriteLine(item);
+        }
+
+        Console.WriteLine("Общий итог: " + totalSum);
+        Console.WriteLine("Время выполнения: " + sw.ElapsedMilliseconds + " мс");
+    }
+
+    static void CreateFileIfNotExists()
+    {
+        if (File.Exists(fileName))
+            return;
+
+        Random random = new Random();
+
+        using StreamWriter writer = new StreamWriter(fileName);
+
+        for (int i = 0; i < 15; i++)
+        {
+            for (int j = 0; j < 100; j++)
+            {
+                int number = random.Next(1, 101);
+                writer.Write(number);
+
+                if (j < 99)
+                    writer.Write(" ");
+            }
+
+            writer.WriteLine();
+        }
+
+        Console.WriteLine("Файл numbers.txt создан.");
+    }
+
+    static void Work(int setNumber, string line)
+    {
+        semaphore.WaitOne();
+
+        try
+        {
+            string[] parts = line.Split(' ');
+            int sum = 0;
+
+            foreach (string part in parts)
+            {
+                sum += int.Parse(part);
+            }
+
+            int threadId = Thread.CurrentThread.ManagedThreadId;
+
+            lock (logLocker)
+            {
+                log.Add("Набор " + setNumber + 
+                        ", сумма = " + sum + 
+                        ", поток = " + threadId);
+            }
+
+            mutex.WaitOne();
+            totalSum += sum;
+            mutex.ReleaseMutex();
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+}
