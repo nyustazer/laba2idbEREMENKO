@@ -1,0 +1,40 @@
+using System;
+using System.Diagnostics;
+using System.Net;
+
+class Program
+{
+    static void Main()
+    {
+        string[] urls =
+        {
+            "https://jsonplaceholder.typicode.com/posts/1",
+            "https://api.agify.io/?name=anna",
+            "https://dog.ceo/api/breeds/image/random"
+        };
+
+        Stopwatch sw = Stopwatch.StartNew();
+
+        foreach (string url in urls)
+        {
+            try
+            {
+                WebClient client = new WebClient();
+                string json = client.DownloadString(url);
+
+                Console.WriteLine("Ответ от сервера:");
+                Console.WriteLine(json);
+                Console.WriteLine();
+            }
+            catch
+            {
+                Console.WriteLine("Ошибка: сервер не ответил или вернул ошибку.");
+                return;
+            }
+        }
+
+        sw.Stop();
+
+        Console.WriteLine("Общее время работы: " + sw.ElapsedMilliseconds + " мс");
+    }
+}
