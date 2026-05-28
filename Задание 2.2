@@ -1,0 +1,56 @@
+using System;
+using System.Diagnostics;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+class Program
+{
+    static HttpClient client = new HttpClient();
+
+    static async Task Main()
+    {
+        string[] urls =
+        {
+            "https://jsonplaceholder.typicode.com/posts/1",
+            "https://api.agify.io/?name=anna",
+            "https://dog.ceo/api/breeds/image/random"
+        };
+
+        Stopwatch sw = Stopwatch.StartNew();
+
+        try
+        {
+            Task<string> task1 = GetJson(urls[0]);
+            Task<string> task2 = GetJson(urls[1]);
+            Task<string> task3 = GetJson(urls[2]);
+
+            string[] results = await Task.WhenAll(task1, task2, task3);
+
+            foreach (string json in results)
+            {
+                Console.WriteLine("Ответ от сервера:");
+                Console.WriteLine(json);
+                Console.WriteLine();
+            }
+        }
+        catch
+        {
+            Console.WriteLine("Ошибка: сервер не ответил или вернул ошибку.");
+            return;
+        }
+
+        sw.Stop();
+
+        Console.WriteLine("Общее время работы: " + sw.ElapsedMilliseconds + " мс");
+    }
+
+    static async Task<string> GetJson(string url)
+    {
+        HttpResponseMessage response = await client.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode)
+            throw new Exception("Ошибка сервера");
+
+        return await response.Content.ReadAsStringAsync();
+    }
+}
